@@ -21,3 +21,7 @@ rad.json
 *.flf
 #Test results file
 TestResults.xml
+x64/
+*_old
+*vcxproj*
+*sln

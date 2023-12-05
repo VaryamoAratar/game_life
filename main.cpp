@@ -5,17 +5,60 @@
 #include<Windows.h>
 
 
+void fClean(char** pole, char** poleTmp, char** poleTmpC, int rows) // Очистка памяти
+{
+	for (int i = 0; i < rows; i++)
+	{
+		delete[] pole[i];
+		delete[] poleTmp[i];
+		delete[] poleTmpC[i];
+	}
+	delete[] pole;
+	delete[] poleTmp;
+	delete[] poleTmpC;
+}
+int printPole(char** pole, char** poleTmp, char** poleTmpC, int rows, int cols, short& generation) //Вывод поля на консоль
+{
+	int count = 0;
+	for (int i = 0; i < rows; i++)
+	{
+		for (int j = 0; j < cols; j++)
+		{
+			std::cout << pole[i][j] << ' ';
+			if (pole[i][j] == '*') count++;
+		}
+		std::cout << std::endl;
+	}
+	if (count == 0)
+	{
+		generation++;
+		std::cout << "Generation number: " << generation << ' ' << "Alive cells: " << count << std::endl;
+		std::cout << "All cells are dead. Game Over";
+		fClean(pole, poleTmp, poleTmpC, rows);
+		return 0;
+	}
+	else
+	{
+		generation++;
+		std::cout << "Generation: " << generation << ' ' << "Alive cells: " << count << std::endl;
+	}
+	return count;
+}
 
-int main() {
+int main()
+{
 	std::string vvod;
 	std::ifstream fin("in.txt");
 
 
-	if (fin.is_open()) {
+	if (fin.is_open())
+	{
+		int count = 0;
+
 		bool exit = 1;
 		int rows = 0;
 		int cols = 0;
-		short generation = 1;
+		short generation = 0;
 
 		fin >> vvod;
 		rows = stoi(vvod);
@@ -25,10 +68,12 @@ int main() {
 		// Создание поля 
 		char** pole = new char* [rows];
 		char** poleTmp = new char* [rows];
+		char** poleTmpC = new char* [rows];
 		for (int i = 0; i < rows; i++)
 		{
 			pole[i] = new char[cols];
 			poleTmp[i] = new char[cols];
+			poleTmpC[i] = new char[cols];
 		}
 		// Заполнение поля пустыми клетками
 		for (int i = 0; i < rows; i++)
@@ -36,6 +81,7 @@ int main() {
 			for (int j = 0; j < cols; j++) {
 				pole[i][j] = '-';
 				poleTmp[i][j] = '-';
+				poleTmpC[i][j] = '-';
 			}
 		}
 		// Заполнение поля живыми клетками
@@ -47,6 +93,7 @@ int main() {
 				int j = stoi(vvod);
 				pole[i][j] = '*';
 				poleTmp[i][j] = '*';
+				poleTmpC[i][j] = '-';
 				break;
 			}
 		}
@@ -54,20 +101,7 @@ int main() {
 		fin.close();
 
 		// Выводим поле, выводим номер поколения, считаем и выводим количество живых клеток в первый раз
-		{
-			int count = 0;
-			for (int i = 0; i < rows; i++)
-			{
-				for (int j = 0; j < cols; j++)
-				{
-					std::cout << pole[i][j] << ' ';
-					if (pole[i][j] == '*') count++;
-				}
-				std::cout << std::endl;
-			}
-			std::cout << "Generation: " << generation << ' ' << "Alive cells: " << count << std::endl;
-		}
-
+		printPole(pole, poleTmp, poleTmpC, rows, cols, generation);
 
 		// Начинается самая веселая часть
 
@@ -76,19 +110,90 @@ int main() {
 				// Если есть отличия
 		while (exit)
 		{
-			if (generation > 1 && generation < 99)
+			if (generation > 1 && generation < 999)
 			{
 				exit = 0;
 				for (int i = 0; i < rows; i++)
 				{
 					for (int j = 0; j < cols; j++)
 					{
+
 						if (pole[i][j] != poleTmp[i][j])
+						{
 							exit = 1;
+						}
 					}
 				}
 			}
-			else if (generation == 99)  exit = 0;
+			// Если слишком долго работает
+			else if (generation == 999)
+				//Очистка экрана перед выводом текущего сотояния
+			{
+				Sleep(500);
+				system("cls");
+				//Выводим состояние поля, поколение и считаем количество живых клеток
+
+				count = printPole(pole, poleTmp, poleTmpC, rows, cols, generation);
+				if (count == 0)
+				{
+					fClean(pole, poleTmp, poleTmpC, rows);
+					return 0;
+				}
+				else
+				{
+					std::cout << "the end of the world. Game Over";
+					fClean(pole, poleTmp, poleTmpC, rows);
+					return 0;
+				}
+			}
+			// Если зацикливается, будем сравнивать с предыдущим состоянием
+
+			if (!generation % 2)
+			{
+				int cicle = 0;
+				for (int i = 0; i < rows; i++)
+				{
+					for (int j = 0; j < cols; j++)
+					{
+						if (pole[i][j] == poleTmpC[i][j])
+						{
+							cicle++;
+						}
+					}
+				}
+				if (cicle == (rows * cols))
+				{
+					//Очистка экрана перед выводом текущего сотояния
+					Sleep(500);
+					system("cls");
+					count = printPole(pole, poleTmp, poleTmpC, rows, cols, generation);
+					if (count == 0)
+					{
+						fClean(pole, poleTmp, poleTmpC, rows);
+						return 0;
+					}
+					else
+					{
+						std::cout << "the world is looped. Game Over";
+						fClean(pole, poleTmp, poleTmpC, rows);
+						return 0;
+					}
+				}
+				for (int i = 0; i < rows; i++)
+				{
+					for (int j = 0; j < cols; j++)
+					{
+						if (pole[i][j] != poleTmpC[i][j])
+						{
+							poleTmpC[i][j] = pole[i][j];
+						}
+					}
+				}
+			}
+
+
+
+
 			// Записываем текущее состояние 
 			for (int i = 0; i < rows; i++)
 			{
@@ -316,36 +421,11 @@ int main() {
 
 			//Выводим состояние поля, поколение и считаем количество живых клеток
 			{
-				int count = 0;
-				for (int i = 0; i < rows; i++)
-				{
-					for (int j = 0; j < cols; j++)
-					{
-						std::cout << pole[i][j] << ' ';
-						if (pole[i][j] == '*') count++;
-					}
-					std::cout << std::endl;
-				}
-				// Если живых клеток нет, то конец игры
+				count = printPole(pole, poleTmp, poleTmpC, rows, cols, generation);
 				if (count == 0)
 				{
-					generation++;
-					std::cout << "Generation number: " << generation << ' ' << "Alive cells: " << count << std::endl;
-					std::cout << "All cells are dead. Game Over";
-					// Очистка памяти из под массивов
-					for (int i = 0; i < rows; i++)
-					{
-						delete[] pole[i];
-						delete[] poleTmp[i];
-					}
-					delete[] pole;
-					delete[] poleTmp;
+					fClean(pole, poleTmp, poleTmpC, rows);
 					return 0;
-				}
-				else
-				{
-					generation++;
-					std::cout << "Generation: " << generation << ' ' << "Alive cells: " << count << std::endl;
 				}
 			}
 		}
@@ -358,28 +438,10 @@ int main() {
 
 		//Выводим поле и считаем количество живых клеток
 		{
-			int count = 0;
-			for (int i = 0; i < rows; i++)
-			{
-				for (int j = 0; j < cols; j++)
-				{
-					std::cout << pole[i][j] << ' ';
-					if (pole[i][j] == '*') count++;
-				}
-				std::cout << std::endl;
-			}
-			generation++;
-			std::cout << "Generation: " << generation << ' ' << "Alive cells: " << count << std::endl;
+			count = printPole(pole, poleTmp, poleTmpC, rows, cols, generation);
 			std::cout << "The world has stagnated. Game Over";
 		}
-		// Очистка памяти из под массивов
-		for (int i = 0; i < rows; i++)
-		{
-			delete[] pole[i];
-			delete[] poleTmp[i];
-		}
-		delete[] pole;
-		delete[] poleTmp;
+		fClean(pole, poleTmp, poleTmpC, rows);
 	}
 	else std::cout << "file_not_open!";
 	return 0;
